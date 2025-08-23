@@ -1123,8 +1123,26 @@ static void ggml_compute_forward_mul_mat_one_chunk(
     const struct ggml_tensor * src1 = dst->src[1];
 
     GGML_TENSOR_BINARY_OP_LOCALS
+#ifdef MY_DEBUG_FLAGS
+        //printf("*****************************************************************\n");
+    printf("ggml type:%d\n", type);
+        //printf("ggml_compute_forward_mul_mat_one_chunk for type %d\n",type);
+        //printf("ne00=%lld,ne01=%lld,ne02=%lld,ne03=%lld\n", ne00, ne01, ne02, ne03);
+        //printf("nb00=%lld,nb01=%lld,nb02=%lld,nb03=%lld\n", nb00, nb01, nb02, nb03);
+        //printf("ne10=%lld,ne11=%lld,ne12=%lld,ne13=%lld\n", ne10, ne11, ne12, ne13);
+        //printf("nb10=%lld,nb11=%lld,nb12=%lld,nb13=%lld\n", nb10, nb11, nb12, nb13);
+        //printf("ne0=%lld, ne1=%lld, ne2=%lld, ne3=%lld\n", ne0, ne1, ne2, ne3);
+        //printf("nb0=%lld, nb1=%lld, nb2=%lld, nb3=%lld\n", nb0, nb1, nb2, nb3);
+        //printf("ir0_start = %llu, ir0_end = %llu, ir1_start = %llu, ir1_end = %llu\n",
+        //       ir0_start, ir0_end, ir1_start, ir1_end);
+        //printf("type = %d,block_size: %zu,type_size:%zu\n",
+        //       type, ggml_blck_size(type), ggml_type_size(type));
+#endif
 
     const bool src1_cont = ggml_is_contiguous(src1);
+#ifdef MY_DEBUG_FLAGS
+    printf("src1 is contiguous: %d\n", src1_cont);
+#endif
 
     ggml_vec_dot_t const vec_dot      = type_traits_cpu[type].vec_dot;
     enum ggml_type const vec_dot_type = type_traits_cpu[type].vec_dot_type;
@@ -1132,14 +1150,17 @@ static void ggml_compute_forward_mul_mat_one_chunk(
     // broadcast factors
     const int64_t r2 = ne12 / ne02;
     const int64_t r3 = ne13 / ne03;
-
-    //printf("ir0_start = %6lld, ir0_end = %6lld, ir1_start = %6lld, ir1_end = %6lld\n", ir0_start, ir0_end, ir1_start, ir1_end);
+#ifdef MY_DEBUG_FLAGS
+    printf("ir0_start = %6lld, ir0_end = %6lld, ir1_start = %6lld, ir1_end = %6lld\n", ir0_start, ir0_end, ir1_start, ir1_end);
+#endif
 
     // threads with no work simply yield (not sure if it helps)
     if (ir0_start >= ir0_end || ir1_start >= ir1_end) {
         return;
     }
-
+#ifdef MY_DEBUG_FLAGS
+    printf("The result of src1-> type == vec_dot_type is %d\n", src1->type == vec_dot_type);
+#endif
     const void * wdata = (src1->type == vec_dot_type) ? src1->data : params->wdata;
     const size_t row_size = ggml_row_size(vec_dot_type, ne10);
 
