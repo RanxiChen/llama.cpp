@@ -1108,7 +1108,9 @@ void ggml_set_f32_nd(const struct ggml_tensor * tensor, int i0, int i1, int i2, 
 ////////////////////////////////////////////////////////////////////////////////
 
 // ggml_compute_forward_mul_mat
-
+#ifdef MY_DEBUG_FLAGS
+int write_flags =0;
+#endif
 static void ggml_compute_forward_mul_mat_one_chunk(
     const struct ggml_compute_params * params,
     struct ggml_tensor * dst,
@@ -1124,8 +1126,10 @@ static void ggml_compute_forward_mul_mat_one_chunk(
 
     GGML_TENSOR_BINARY_OP_LOCALS
 #ifdef MY_DEBUG_FLAGS
+    write_flags +=1;
         //printf("*****************************************************************\n");
-    printf("ggml type:%d\n", type);
+    //printf("ggml type:%d\n", type);
+    //printf("type name is %s\n", ggml_type_name(type));
         //printf("ggml_compute_forward_mul_mat_one_chunk for type %d\n",type);
         //printf("ne00=%lld,ne01=%lld,ne02=%lld,ne03=%lld\n", ne00, ne01, ne02, ne03);
         //printf("nb00=%lld,nb01=%lld,nb02=%lld,nb03=%lld\n", nb00, nb01, nb02, nb03);
@@ -1141,7 +1145,7 @@ static void ggml_compute_forward_mul_mat_one_chunk(
 
     const bool src1_cont = ggml_is_contiguous(src1);
 #ifdef MY_DEBUG_FLAGS
-    printf("src1 is contiguous: %d\n", src1_cont);
+    //printf("src1 is contiguous: %d\n", src1_cont);
 #endif
 
     ggml_vec_dot_t const vec_dot      = type_traits_cpu[type].vec_dot;
@@ -1151,15 +1155,21 @@ static void ggml_compute_forward_mul_mat_one_chunk(
     const int64_t r2 = ne12 / ne02;
     const int64_t r3 = ne13 / ne03;
 #ifdef MY_DEBUG_FLAGS
-    printf("ir0_start = %6lld, ir0_end = %6lld, ir1_start = %6lld, ir1_end = %6lld\n", ir0_start, ir0_end, ir1_start, ir1_end);
-#endif
+    //printf("r2 = %6lld(ne12:%6lld / ne02:%6lld), r3 = %6lld(ne13:%6lld / ne03:%6lld)\n"
+    //    , r2,ne12,ne02, r3,ne13,ne03);
+    //printf("ir0_start = %6lld, ir0_end = %6lld, ir1_start = %6lld, ir1_end = %6lld\n", ir0_start, ir0_end, ir1_start, ir1_end);
+    if (r2 != 1 || r3 != 1) {
+        //printf("broadcasting detected\n");
+    }
+    #endif
 
     // threads with no work simply yield (not sure if it helps)
     if (ir0_start >= ir0_end || ir1_start >= ir1_end) {
         return;
     }
 #ifdef MY_DEBUG_FLAGS
-    printf("The result of src1-> type == vec_dot_type is %d\n", src1->type == vec_dot_type);
+    //printf("The result of src1-> type == vec_dot_type is %d\n", src1->type == vec_dot_type);
+    //printf("The number of block is %ld\n",ggml_row_size(vec_dot_type,ne10));
 #endif
     const void * wdata = (src1->type == vec_dot_type) ? src1->data : params->wdata;
     const size_t row_size = ggml_row_size(vec_dot_type, ne10);
@@ -1172,7 +1182,10 @@ static void ggml_compute_forward_mul_mat_one_chunk(
     const int64_t blck_1 = 16;
 
     const size_t src1_col_stride = src1_cont || src1->type != vec_dot_type ? row_size : nb11;
-
+#ifdef MY_DEBUG_FLAGS
+    //printf("src1's type is %s, vec_dot_type is %s\n", ggml_type_name(src1->type),ggml_type_name(vec_dot_type));
+    //printf("src1_col_stride is %6llu\n", src1_col_stride);
+#endif
     // attempt to reduce false-sharing (does not seem to make a difference)
     // 16 * 2, accounting for mmla kernels
     float tmp[32];
@@ -1203,6 +1216,10 @@ static void ggml_compute_forward_mul_mat_one_chunk(
                         ? (i11 + i12 * ne11 + i13 * ne12 * ne11) * row_size
                         : (i11 * nb11 + i12 * nb12 + i13 * nb13));
                 float * dst_col = (float*)((char*)dst->data + (i1 * nb1 + i2 * nb2 + i3 * nb3));
+#ifdef MY_DEBUG_FLAGS
+                printf("[%d] dst_col computed by : [base] + %lu * %lu + %lu * %lu + %lu * %lu = [base] + %lu\n",write_flags,i1,nb1,i2,nb2,i3,nb3,i1*nb1 + i2*nb2 + i3*nb3);
+                printf("[%d] dst has ne: %lu, %lu, %lu, %lu\n",write_flags,ne0,ne1,ne2,ne3);
+#endif
 
                 //for (int64_t ir0 = iir0; ir0 < iir0 + blck_0 && ir0 < ir0_end; ++ir0) {
                 //    vec_dot(ne00, &dst_col[ir0], src0_row + ir0*nb01, src1_col);
@@ -1210,10 +1227,16 @@ static void ggml_compute_forward_mul_mat_one_chunk(
 
                 for (int64_t ir0 = iir0; ir0 < iir0 + blck_0 && ir0 < ir0_end; ir0 += num_rows_per_vec_dot) {
                     vec_dot(ne00, &tmp[ir0 - iir0], (num_rows_per_vec_dot > 1 ? 16 : 0), src0_row + ir0 * nb01, (num_rows_per_vec_dot > 1 ? nb01 : 0), src1_col, (num_rows_per_vec_dot > 1 ? src1_col_stride : 0), num_rows_per_vec_dot);
+#ifdef MY_DEBUG_FLAGS
+                    printf("[%d] vec dot to tmp[%ld] between src0_row + %lu(%lu * %lu) and src1_col with size %lu\n",write_flags, ir0 - iir0, ir0 * nb01,ir0,nb01, ne00);
+#endif
                 }
 
                 for (int cn = 0; cn < num_rows_per_vec_dot; ++cn) {
                     memcpy(&dst_col[iir0 + cn * nb1 / nb0], tmp + (cn * 16), (MIN(iir0 + blck_0, ir0_end) - iir0) * sizeof(float));
+#ifdef MY_DEBUG_FLAGS
+                printf("[%d] copy tmp + %d to dst_col[%lu] with size %lu\n", write_flags,cn * 16, iir0 + cn * nb1 / nb0, (MIN(iir0 + blck_0, ir0_end) - iir0) * sizeof(float));
+#endif
                 }
             }
         }

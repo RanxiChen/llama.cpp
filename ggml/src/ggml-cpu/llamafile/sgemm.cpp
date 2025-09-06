@@ -120,6 +120,93 @@ inline float32x4_t mul(float32x4_t x, float32x4_t y) { return vec_mul(x, y); }
 typedef vector unsigned char vec_t;
 typedef __vector_quad acc_t;
 #endif
+
+#ifdef MY_ACCELERATE_FLAGS
+#include <riscv_vector.h>
+
+// 动态向量长度的实现
+inline vfloat32m1_t add(vfloat32m1_t x, vfloat32m1_t y, size_t vl) {
+    return __riscv_vfadd_vv_f32m1(x, y, vl);
+}
+inline vfloat32m1_t sub(vfloat32m1_t x, vfloat32m1_t y, size_t vl) {
+    return __riscv_vfsub_vv_f32m1(x, y, vl);
+}
+inline vfloat32m1_t mul(vfloat32m1_t x, vfloat32m1_t y, size_t vl) {
+    return __riscv_vfmul_vv_f32m1(x, y, vl);
+}
+
+// 更宽的向量寄存器组 (LMUL=2)
+inline vfloat32m2_t add(vfloat32m2_t x, vfloat32m2_t y, size_t vl) {
+    return __riscv_vfadd_vv_f32m2(x, y, vl);
+}
+inline vfloat32m2_t sub(vfloat32m2_t x, vfloat32m2_t y, size_t vl) {
+    return __riscv_vfsub_vv_f32m2(x, y, vl);
+}
+inline vfloat32m2_t mul(vfloat32m2_t x, vfloat32m2_t y, size_t vl) {
+    return __riscv_vfmul_vv_f32m2(x, y, vl);
+}
+
+// 更宽的向量寄存器组 (LMUL=4)
+inline vfloat32m4_t add(vfloat32m4_t x, vfloat32m4_t y, size_t vl) {
+    return __riscv_vfadd_vv_f32m4(x, y, vl);
+}
+inline vfloat32m4_t sub(vfloat32m4_t x, vfloat32m4_t y, size_t vl) {
+    return __riscv_vfsub_vv_f32m4(x, y, vl);
+}
+inline vfloat32m4_t mul(vfloat32m4_t x, vfloat32m4_t y, size_t vl) {
+    return __riscv_vfmul_vv_f32m4(x, y, vl);
+}
+
+// 半精度浮点支持
+#ifdef 0
+inline vfloat16m1_t add(vfloat16m1_t x, vfloat16m1_t y, size_t vl) {
+    return __riscv_vfadd_vv_f16m1(x, y, vl);
+}
+inline vfloat16m1_t sub(vfloat16m1_t x, vfloat16m1_t y, size_t vl) {
+    return __riscv_vfsub_vv_f16m1(x, y, vl);
+}
+inline vfloat16m1_t mul(vfloat16m1_t x, vfloat16m1_t y, size_t vl) {
+    return __riscv_vfmul_vv_f16m1(x, y, vl);
+}
+
+inline vfloat16m2_t add(vfloat16m2_t x, vfloat16m2_t y, size_t vl) {
+    return __riscv_vfadd_vv_f16m2(x, y, vl);
+}
+inline vfloat16m2_t sub(vfloat16m2_t x, vfloat16m2_t y, size_t vl) {
+    return __riscv_vfsub_vv_f16m2(x, y, vl);
+}
+inline vfloat16m2_t mul(vfloat16m2_t x, vfloat16m2_t y, size_t vl) {
+    return __riscv_vfmul_vv_f16m2(x, y, vl);
+}
+#endif // __riscv_zvfh
+
+// 整数向量支持（用于量化计算）
+inline vint8m1_t add(vint8m1_t x, vint8m1_t y, size_t vl) {
+    return __riscv_vadd_vv_i8m1(x, y, vl);
+}
+inline vint8m1_t sub(vint8m1_t x, vint8m1_t y, size_t vl) {
+    return __riscv_vsub_vv_i8m1(x, y, vl);
+}
+inline vint8m1_t mul(vint8m1_t x, vint8m1_t y, size_t vl) {
+    return __riscv_vmul_vv_i8m1(x, y, vl);
+}
+
+inline vint16m1_t add(vint16m1_t x, vint16m1_t y, size_t vl) {
+    return __riscv_vadd_vv_i16m1(x, y, vl);
+}
+inline vint16m1_t sub(vint16m1_t x, vint16m1_t y, size_t vl) {
+    return __riscv_vsub_vv_i16m1(x, y, vl);
+}
+inline vint16m1_t mul(vint16m1_t x, vint16m1_t y, size_t vl) {
+    return __riscv_vmul_vv_i16m1(x, y, vl);
+}
+
+// RVV的动态向量长度特性
+#define RVV_VLEN_BYTES (__riscv_vlenb())
+#define RVV_VECTOR_REGISTERS 32
+
+#endif
+#endif
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // VECTORIZED FUSED MULTIPLY ADD
 
