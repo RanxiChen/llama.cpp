@@ -206,7 +206,6 @@ inline vint16m1_t mul(vint16m1_t x, vint16m1_t y, size_t vl) {
 #define RVV_VECTOR_REGISTERS 32
 
 #endif
-#endif
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // VECTORIZED FUSED MULTIPLY ADD
 
