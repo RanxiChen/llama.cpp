@@ -261,7 +261,58 @@ inline float32x4_t madd(float32x4_t a, float32x4_t b, float32x4_t c) {
     return vec_madd(a, b, c);
 }
 #endif
+#ifdef MY_ACCELERATE_FLAGS
+// RVV 乘加融合运算实现
+template <>
+inline vfloat32m1_t madd(vfloat32m1_t a, vfloat32m1_t b, vfloat32m1_t c, size_t vl) {
+    return __riscv_vfmadd_vv_f32m1(a, b, c, vl);
+}
 
+template <>
+inline vfloat32m2_t madd(vfloat32m2_t a, vfloat32m2_t b, vfloat32m2_t c, size_t vl) {
+    return __riscv_vfmadd_vv_f32m2(a, b, c, vl);
+}
+
+template <>
+inline vfloat32m4_t madd(vfloat32m4_t a, vfloat32m4_t b, vfloat32m4_t c, size_t vl) {
+    return __riscv_vfmadd_vv_f32m4(a, b, c, vl);
+}
+
+#if 0  // 半精度浮点支持
+template <>
+inline vfloat16m1_t madd(vfloat16m1_t a, vfloat16m1_t b, vfloat16m1_t c, size_t vl) {
+    return __riscv_vfmadd_vv_f16m1(a, b, c, vl);
+}
+
+template <>
+inline vfloat16m2_t madd(vfloat16m2_t a, vfloat16m2_t b, vfloat16m2_t c, size_t vl) {
+    return __riscv_vfmadd_vv_f16m2(a, b, c, vl);
+}
+#endif
+
+// 通用模板的RVV重载（需要vl参数）
+template <typename T, typename U>
+inline U madd(T a, T b, U c, size_t vl) {
+    return add(mul(a, b, vl), c, vl);
+}
+
+// 静态向量长度的便利函数
+inline vfloat32m1_t madd(vfloat32m1_t a, vfloat32m1_t b, vfloat32m1_t c) {
+    size_t vl = __riscv_vsetvl_e32m1(4);
+    return __riscv_vfmadd_vv_f32m1(a, b, c, vl);
+}
+
+inline vfloat32m2_t madd(vfloat32m2_t a, vfloat32m2_t b, vfloat32m2_t c) {
+    size_t vl = __riscv_vsetvl_e32m2(8);
+    return __riscv_vfmadd_vv_f32m2(a, b, c, vl);
+}
+
+inline vfloat32m4_t madd(vfloat32m4_t a, vfloat32m4_t b, vfloat32m4_t c) {
+    size_t vl = __riscv_vsetvl_e32m4(16);
+    return __riscv_vfmadd_vv_f32m4(a, b, c, vl);
+}
+
+#endif // MY_ACCELERATE_FLAGS
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // VECTORIZED HORIZONTAL SUM
 
@@ -313,7 +364,61 @@ inline float hsum(__m512 x) {
     return _mm512_reduce_add_ps(x);
 }
 #endif // __AVX512F__
+#ifdef MY_ACCELERATE_FLAGS
 
+// RVV 水平求和实现
+inline float hsum(vfloat32m1_t x) {
+    size_t vl = __riscv_vsetvl_e32m1(4);
+    vfloat32m1_t sum = __riscv_vfredosum_vs_f32m1_f32m1(x, __riscv_vfmv_s_f_f32m1(0, vl), vl);
+    return __riscv_vfmv_f_s_f32m1_f32(sum);
+}
+
+inline float hsum(vfloat32m2_t x) {
+    size_t vl = __riscv_vsetvl_e32m2(8);
+    vfloat32m1_t sum = __riscv_vfredosum_vs_f32m2_f32m1(x, __riscv_vfmv_s_f_f32m1(0, vl), vl);
+    return __riscv_vfmv_f_s_f32m1_f32(sum);
+}
+
+inline float hsum(vfloat32m4_t x) {
+    size_t vl = __riscv_vsetvl_e32m4(16);
+    vfloat32m1_t sum = __riscv_vfredosum_vs_f32m4_f32m1(x, __riscv_vfmv_s_f_f32m1(0, vl), vl);
+    return __riscv_vfmv_f_s_f32m1_f32(sum);
+}
+
+#if 0  // 半精度浮点支持
+inline float hsum(vfloat16m1_t x) {
+    size_t vl = __riscv_vsetvl_e16m1(8);
+    vfloat16m1_t sum = __riscv_vfredosum_vs_f16m1_f16m1(x, __riscv_vfmv_s_f_f16m1(0, vl), vl);
+    return __riscv_vfmv_f_s_f16m1_f16(sum);
+}
+
+inline float hsum(vfloat16m2_t x) {
+    size_t vl = __riscv_vsetvl_e16m2(16);
+    vfloat16m1_t sum = __riscv_vfredosum_vs_f16m2_f16m1(x, __riscv_vfmv_s_f_f16m1(0, vl), vl);
+    return __riscv_vfmv_f_s_f16m1_f16(sum);
+}
+#endif
+
+// 整数向量的水平求和
+inline int32_t hsum(vint32m1_t x) {
+    size_t vl = __riscv_vsetvl_e32m1(4);
+    vint32m1_t sum = __riscv_vredsum_vs_i32m1_i32m1(x, __riscv_vmv_s_x_i32m1(0, vl), vl);
+    return __riscv_vmv_x_s_i32m1_i32(sum);
+}
+
+inline int32_t hsum(vint32m2_t x) {
+    size_t vl = __riscv_vsetvl_e32m2(8);
+    vint32m1_t sum = __riscv_vredsum_vs_i32m2_i32m1(x, __riscv_vmv_s_x_i32m1(0, vl), vl);
+    return __riscv_vmv_x_s_i32m1_i32(sum);
+}
+
+// 动态向量长度版本
+inline float hsum_dynamic(vfloat32m1_t x, size_t vl) {
+    vfloat32m1_t sum = __riscv_vfredosum_vs_f32m1_f32m1(x, __riscv_vfmv_s_f_f32m1(0, vl), vl);
+    return __riscv_vfmv_f_s_f32m1_f32(sum);
+}
+
+#endif // MY_ACCELERATE_FLAGS
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // VECTORIZED MEMORY LOADING
 
@@ -401,7 +506,141 @@ template <> inline __m256bh load(const float *p) {
     return _mm512_cvtneps_pbh(_mm512_loadu_ps(p));
 }
 #endif
+#ifdef MY_ACCELERATE_FLAGS
+// RVV 向量化内存加载实现
 
+// 基础float加载
+template <> inline vfloat32m1_t load(const float *p) {
+    size_t vl = __riscv_vsetvl_e32m1(4);
+    return __riscv_vle32_v_f32m1(p, vl);
+}
+
+template <> inline vfloat32m2_t load(const float *p) {
+    size_t vl = __riscv_vsetvl_e32m2(8);
+    return __riscv_vle32_v_f32m2(p, vl);
+}
+
+template <> inline vfloat32m4_t load(const float *p) {
+    size_t vl = __riscv_vsetvl_e32m4(16);
+    return __riscv_vle32_v_f32m4(p, vl);
+}
+
+// 半精度浮点加载并转换为单精度
+template <> inline vfloat32m1_t load(const ggml_fp16_t *p) {
+    size_t vl = __riscv_vsetvl_e16m1(4);
+    vfloat16m1_t f16_vec = __riscv_vle16_v_f16m1((const _Float16 *)p, vl);
+    // 将FP16转换为FP32
+    size_t vl32 = __riscv_vsetvl_e32m1(4);
+    return __riscv_vfwcvt_f_f_v_f32m1(f16_vec, vl32);
+}
+
+template <> inline vfloat32m2_t load(const ggml_fp16_t *p) {
+    size_t vl = __riscv_vsetvl_e16m1(8);
+    vfloat16m1_t f16_vec = __riscv_vle16_v_f16m1((const _Float16 *)p, vl);
+    size_t vl32 = __riscv_vsetvl_e32m2(8);
+    return __riscv_vfwcvt_f_f_v_f32m2(f16_vec, vl32);
+}
+
+template <> inline vfloat32m4_t load(const ggml_fp16_t *p) {
+    size_t vl = __riscv_vsetvl_e16m2(16);
+    vfloat16m2_t f16_vec = __riscv_vle16_v_f16m2((const _Float16 *)p, vl);
+    size_t vl32 = __riscv_vsetvl_e32m4(16);
+    return __riscv_vfwcvt_f_f_v_f32m4(f16_vec, vl32);
+}
+
+// BF16加载（通过整数加载再转换）
+template <> inline vfloat32m1_t load(const ggml_bf16_t *p) {
+    size_t vl = __riscv_vsetvl_e16m1(4);
+    vuint16m1_t bf16_bits = __riscv_vle16_v_u16m1((const uint16_t *)p, vl);
+    // BF16转FP32：将16位左移16位成为32位
+    size_t vl32 = __riscv_vsetvl_e32m1(4);
+    vuint32m1_t fp32_bits = __riscv_vzext_vf2_u32m1(bf16_bits, vl32);
+    fp32_bits = __riscv_vsll_vx_u32m1(fp32_bits, 16, vl32);
+    return __riscv_vreinterpret_v_u32m1_f32m1(fp32_bits);
+}
+
+template <> inline vfloat32m2_t load(const ggml_bf16_t *p) {
+    size_t vl = __riscv_vsetvl_e16m1(8);
+    vuint16m1_t bf16_bits = __riscv_vle16_v_u16m1((const uint16_t *)p, vl);
+    size_t vl32 = __riscv_vsetvl_e32m2(8);
+    vuint32m2_t fp32_bits = __riscv_vzext_vf2_u32m2(bf16_bits, vl32);
+    fp32_bits = __riscv_vsll_vx_u32m2(fp32_bits, 16, vl32);
+    return __riscv_vreinterpret_v_u32m2_f32m2(fp32_bits);
+}
+
+template <> inline vfloat32m4_t load(const ggml_bf16_t *p) {
+    size_t vl = __riscv_vsetvl_e16m2(16);
+    vuint16m2_t bf16_bits = __riscv_vle16_v_u16m2((const uint16_t *)p, vl);
+    size_t vl32 = __riscv_vsetvl_e32m4(16);
+    vuint32m4_t fp32_bits = __riscv_vzext_vf2_u32m4(bf16_bits, vl32);
+    fp32_bits = __riscv_vsll_vx_u32m4(fp32_bits, 16, vl32);
+    return __riscv_vreinterpret_v_u32m4_f32m4(fp32_bits);
+}
+
+#if 0  // 直接FP16向量加载（如果支持）
+template <> inline vfloat16m1_t load(const ggml_fp16_t *p) {
+    size_t vl = __riscv_vsetvl_e16m1(8);
+    return __riscv_vle16_v_f16m1((const _Float16 *)p, vl);
+}
+
+template <> inline vfloat16m2_t load(const ggml_fp16_t *p) {
+    size_t vl = __riscv_vsetvl_e16m2(16);
+    return __riscv_vle16_v_f16m2((const _Float16 *)p, vl);
+}
+#endif
+
+// 整数向量加载（用于量化计算）
+template <> inline vint8m1_t load(const int8_t *p) {
+    size_t vl = __riscv_vsetvl_e8m1(16);
+    return __riscv_vle8_v_i8m1(p, vl);
+}
+
+template <> inline vint16m1_t load(const int16_t *p) {
+    size_t vl = __riscv_vsetvl_e16m1(8);
+    return __riscv_vle16_v_i16m1(p, vl);
+}
+
+template <> inline vint32m1_t load(const int32_t *p) {
+    size_t vl = __riscv_vsetvl_e32m1(4);
+    return __riscv_vle32_v_i32m1(p, vl);
+}
+
+template <> inline vuint8m1_t load(const uint8_t *p) {
+    size_t vl = __riscv_vsetvl_e8m1(16);
+    return __riscv_vle8_v_u8m1(p, vl);
+}
+
+template <> inline vuint16m1_t load(const uint16_t *p) {
+    size_t vl = __riscv_vsetvl_e16m1(8);
+    return __riscv_vle16_v_u16m1(p, vl);
+}
+
+template <> inline vuint32m1_t load(const uint32_t *p) {
+    size_t vl = __riscv_vsetvl_e32m1(4);
+    return __riscv_vle32_v_u32m1(p, vl);
+}
+
+// 动态向量长度版本
+template <typename T>
+inline T load_dynamic(const typename T::element_type *p, size_t vl);
+
+// 特化实现
+template <>
+inline vfloat32m1_t load_dynamic<vfloat32m1_t>(const float *p, size_t vl) {
+    return __riscv_vle32_v_f32m1(p, vl);
+}
+
+template <>
+inline vfloat32m2_t load_dynamic<vfloat32m2_t>(const float *p, size_t vl) {
+    return __riscv_vle32_v_f32m2(p, vl);
+}
+
+template <>
+inline vfloat32m4_t load_dynamic<vfloat32m4_t>(const float *p, size_t vl) {
+    return __riscv_vle32_v_f32m4(p, vl);
+}
+
+#endif // MY_ACCELERATE_FLAGS
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // FLOATING POINT MATRIX MULTIPLICATION
 
