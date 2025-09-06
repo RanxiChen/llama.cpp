@@ -158,7 +158,7 @@ inline vfloat32m4_t mul(vfloat32m4_t x, vfloat32m4_t y, size_t vl) {
 }
 
 // 半精度浮点支持
-#ifdef 0
+#if 0
 inline vfloat16m1_t add(vfloat16m1_t x, vfloat16m1_t y, size_t vl) {
     return __riscv_vfadd_vv_f16m1(x, y, vl);
 }
