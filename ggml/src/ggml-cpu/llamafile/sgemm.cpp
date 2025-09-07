@@ -620,25 +620,7 @@ template <> inline vuint32m1_t load(const uint32_t *p) {
     return __riscv_vle32_v_u32m1(p, vl);
 }
 
-// 动态向量长度版本
-template <typename T>
-inline T load_dynamic(const typename T::element_type *p, size_t vl);
 
-// 特化实现
-template <>
-inline vfloat32m1_t load_dynamic<vfloat32m1_t>(const float *p, size_t vl) {
-    return __riscv_vle32_v_f32m1(p, vl);
-}
-
-template <>
-inline vfloat32m2_t load_dynamic<vfloat32m2_t>(const float *p, size_t vl) {
-    return __riscv_vle32_v_f32m2(p, vl);
-}
-
-template <>
-inline vfloat32m4_t load_dynamic<vfloat32m4_t>(const float *p, size_t vl) {
-    return __riscv_vle32_v_f32m4(p, vl);
-}
 
 #endif // MY_ACCELERATE_FLAGS
 ////////////////////////////////////////////////////////////////////////////////////////////////////
