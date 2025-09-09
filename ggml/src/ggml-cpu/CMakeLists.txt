@@ -82,7 +82,7 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
 
     if (GGML_LLAMAFILE)
         target_compile_definitions(${GGML_CPU_NAME} PRIVATE GGML_USE_LLAMAFILE)
-
+        message(STATUS "CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
         list(APPEND GGML_CPU_SOURCES
                     ggml-cpu/llamafile/sgemm.cpp
                     ggml-cpu/llamafile/sgemm.h)
