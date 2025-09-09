@@ -47,7 +47,12 @@
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
-
+#if defined(MY_ACCELERATE_FLAGS)
+extern "C" {
+#include "shl_ref.h"
+#include "shl_thead_rvv.h"
+}
+#endif
 #include "sgemm.h"
 #include "ggml-impl.h"
 #include "ggml-cpu-impl.h"
@@ -2623,10 +2628,6 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         tb.matmul(m, n);
         return true;
 #elif defined(MY_ACCELERATE_FLAGS)
-extern "C" {
-#include "shl_ref.h"
-#include "shl_thead_rvv.h"
-}
         //shl_rvv_gemm_8x8_fp32(C,A,B,NULL,m,n,k,ldc);
         printf("v");
         return false;
