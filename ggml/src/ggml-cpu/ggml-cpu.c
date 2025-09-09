@@ -1284,10 +1284,8 @@ void ggml_compute_forward_mul_mat(
     const int64_t r3 = ne13 / ne03;
 
     const bool src1_cont = ggml_is_contiguous(src1);
-#if defined(MY_ACCELERATE_FLAGS)
-    printf("wheter use this marco\n");
-#endif
-    
+
+
     if (src1_cont) {
         for (int64_t i13 = 0; i13 < ne13; i13++)
             for (int64_t i12 = 0; i12 < ne12; i12++)
