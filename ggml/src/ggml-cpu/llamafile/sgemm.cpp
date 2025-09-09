@@ -2623,9 +2623,11 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         tb.matmul(m, n);
         return true;
 #elif defined(MY_ACCELERATE_FLAGS)
-#include "rvv/rvv.h"
-        shl_rvv_gemm_8x8_fp32(C,A,B,NULL,m,n,k,ldc);
-        return true;
+#include "shl_ref.h"
+#include "shl_thead_rvv.h"
+        //shl_rvv_gemm_8x8_fp32(C,A,B,NULL,m,n,k,ldc);
+        printf("")
+        return false;
 #else
         return false;
 #endif
