@@ -88,6 +88,7 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
         target_link_libraries(${GGML_CPU_NAME} PRIVATE shl_rvv m)
         target_link_options(${GGML_CPU_NAME} PRIVATE -static -Wl,--no-warn-mismatch)
         message(STATUS "CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
+            message(STATUS "Using SHL for Llamafile")
         endif()
         list(APPEND GGML_CPU_SOURCES
                     ggml-cpu/llamafile/sgemm.cpp
