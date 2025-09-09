@@ -82,7 +82,13 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
 
     if (GGML_LLAMAFILE)
         target_compile_definitions(${GGML_CPU_NAME} PRIVATE GGML_USE_LLAMAFILE)
+        if(USE_SHL)
+        target_include_directories(${GGML_CPU_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/externallib/install_nn2/include")
+        target_link_directories(${GGML_CPU_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/externallib/install_nn2/lib")
+        target_link_libraries(${GGML_CPU_NAME} PRIVATE shl_rvv m)
+        target_link_options(${GGML_CPU_NAME} PRIVATE -static -Wl,--no-warn-mismatch)
         message(STATUS "CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
+        endif()
         list(APPEND GGML_CPU_SOURCES
                     ggml-cpu/llamafile/sgemm.cpp
                     ggml-cpu/llamafile/sgemm.h)
