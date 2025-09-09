@@ -318,7 +318,7 @@ template <> inline __m256bh load(const float *p) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // FLOATING POINT MATRIX MULTIPLICATION
-
+//compute number of block
 template <int M>
 static inline int64_t BLOCK_SIZE(size_t m) {
     const int64_t NB_BLOC_M = (m + M - 1) / M;
@@ -2622,6 +2622,9 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             params->ith, params->nth};
         tb.matmul(m, n);
         return true;
+#elif defined(MY_ACCELERATE_FLAGS)
+        printf("I will insert my function\n");
+        return false;
 #else
         return false;
 #endif
