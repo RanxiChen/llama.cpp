@@ -2590,6 +2590,7 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
 #endif
 int number = g_sgemm_count ++;
 
+
     if (Ctype != GGML_TYPE_F32)
         return false;
 
@@ -2619,7 +2620,10 @@ int number = g_sgemm_count ++;
             (float *)C, ldc};
         return tb.matmul(m, n);
 #elif defined(__AVX__) || defined(__AVX2__)
-        if (params->ith ==0) {
+        if (m != ldc) {
+            printf("m=%d, ldc=%d, they should be equal\n", (int)m, (int)ldc);
+        }
+        if (params->ith ==0 && false) {
             printf("[%d ith (%d)] I will print matrix data\n",params->ith,number);
             printf("[%d] lda = %d\n",number,lda);
             printf("[%d] ldb = %d\n",number,ldb);
@@ -2670,7 +2674,7 @@ int number = g_sgemm_count ++;
             (float *)C, ldc};
         bool func_ret;
         func_ret = tb.matmul(m, n);
-        if (func_ret && params->ith ==0) {
+        if (func_ret && params->ith ==0 && false ) {
             printf("[%d] Return true, I will print matrix C\n",params->ith);
             printf("[%d] matrix C is %d x %d\n", params->ith,m, n);
             char filenameC[64];
