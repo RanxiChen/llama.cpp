@@ -2623,7 +2623,7 @@ int number = g_sgemm_count ++;
         }
         fprintf(fpA,"data\n");
         for (int loop_index =0;loop_index < m*k; loop_index++) {
-            fprintf( fpA, "%f,", ((float*)A)[loop_index]);
+            fprintf( fpA, "%f\n", ((float*)A)[loop_index]);
         }
         fprintf(fpA,"\n");
         fclose(fpA);
