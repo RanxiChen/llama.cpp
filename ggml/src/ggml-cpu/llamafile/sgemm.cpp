@@ -452,9 +452,7 @@ class tinyBLAS {
         }
 
         ggml_barrier(params->threadpool);
-if (params->ith >= 1) {
-    printf("Multi thresds run\n");
-}
+
         int64_t job = params->ith;
         while (job < nb_job) {
             const int64_t ii = (job % ytiles) * RM * BM;
@@ -2612,7 +2610,15 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             (float *)C, ldc};
         return tb.matmul(m, n);
 #elif defined(__AVX__) || defined(__AVX2__)
-
+        printf("I will print matrix data\n");
+        printf("matrix A is %d x %d\n", m, k);
+        for (int loop_index =0;loop_index < m*k; loop_index++) {
+            printf("%f,", ((float*)A)[loop_index]);
+        }
+        printf("matrix B is %d x %d\n", k, n);
+        for (int loop_index =0;loop_index < n*k; loop_index++) {
+            printf("%f,", ((float*)B)[loop_index]);
+        }
         tinyBLAS<8, __m256, __m256, float, float, float> tb{ params,
             k, (const float *)A, lda,
             (const float *)B, ldb,
