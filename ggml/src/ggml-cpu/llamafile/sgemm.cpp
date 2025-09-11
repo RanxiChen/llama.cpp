@@ -2613,41 +2613,43 @@ int number = g_sgemm_count ++;
             (float *)C, ldc};
         return tb.matmul(m, n);
 #elif defined(__AVX__) || defined(__AVX2__)
-        printf("[%d ith (%d)] I will print matrix data\n",params->ith,number);
-        printf("[%d] lda = %d\n",number,lda);
-        printf("[%d] ldb = %d\n",number,ldb);
-        printf("[%d] ldc = %d\n",number,ldc);
-        printf("[%d] k = %d\n",number,k);
-        printf("[%d] m = %d\n",number,m);
-        printf("[%d] n = %d\n",number,n);
-        printf("[%d] matrix A is %d x %d\n", params->ith,m, k);
-        char filenameA[64];
-        snprintf(filenameA,sizeof(filenameA),"matrixA_%d.csr",number);
-        FILE*fpA = fopen(filenameA,"w");
-        if (fpA ==NULL) {
-            perror("cannot open file to write matrix A\n");
+        if (params->ith ==0) {
+            printf("[%d ith (%d)] I will print matrix data\n",params->ith,number);
+            printf("[%d] lda = %d\n",number,lda);
+            printf("[%d] ldb = %d\n",number,ldb);
+            printf("[%d] ldc = %d\n",number,ldc);
+            printf("[%d] k = %d\n",number,k);
+            printf("[%d] m = %d\n",number,m);
+            printf("[%d] n = %d\n",number,n);
+            printf("[%d] matrix A is %d x %d\n", params->ith,m, k);
+            char filenameA[64];
+            snprintf(filenameA,sizeof(filenameA),"matrixA_%d.csv",number);
+            FILE*fpA = fopen(filenameA,"w");
+            if (fpA ==NULL) {
+                perror("cannot open file to write matrix A\n");
+            }
+            fprintf(fpA,"data\n");
+            for (int loop_index =0;loop_index < m*k; loop_index++) {
+                fprintf( fpA, "%f\n", ((float*)A)[loop_index]);
+            }
+            fprintf(fpA,"\n");
+            fclose(fpA);
+            printf("matrix A is written to %s\n",filenameA);
+            printf("[%d] matrix B is %d x %d\n",params->ith ,k, n);
+            char filenameB[64];
+            snprintf(filenameB,sizeof(filenameB),"matrixB_%d.csv",number);
+            FILE*fpB = fopen(filenameB,"w");
+            if (fpB ==NULL) {
+                perror("cannot open file to write matrix B\n");
+            }
+            fprintf(fpB,"data\n");
+            for (int loop_index =0;loop_index < n*k; loop_index++) {
+                fprintf(fpB,"%f,", ((float*)B)[loop_index]);
+            }
+            fprintf(fpB,"\n");
+            fclose(fpB);
+            printf("matrix B is written to %s\n",filenameB);
         }
-        fprintf(fpA,"data\n");
-        for (int loop_index =0;loop_index < m*k; loop_index++) {
-            fprintf( fpA, "%f\n", ((float*)A)[loop_index]);
-        }
-        fprintf(fpA,"\n");
-        fclose(fpA);
-        printf("matrix A is written to %s\n",filenameA);
-        printf("[%d] matrix B is %d x %d\n",params->ith ,k, n);
-        char filenameB[64];
-        snprintf(filenameB,sizeof(filenameB),"matrixB_%d.csr",number);
-        FILE*fpB = fopen(filenameB,"w");
-        if (fpB ==NULL) {
-            perror("cannot open file to write matrix B\n");
-        }
-        fprintf(fpB,"data\n");
-        for (int loop_index =0;loop_index < n*k; loop_index++) {
-            fprintf(fpB,"%f,", ((float*)B)[loop_index]);
-        }
-        fprintf(fpB,"\n");
-        fclose(fpB);
-        printf("matrix B is written to %s\n",filenameB);
         tinyBLAS<8, __m256, __m256, float, float, float> tb{ params,
             k, (const float *)A, lda,
             (const float *)B, ldb,
@@ -2656,7 +2658,20 @@ int number = g_sgemm_count ++;
         func_ret = tb.matmul(m, n);
         if (func_ret) {
             printf("[%d] Return true, I will print matrix C\n",params->ith);
-
+            char filenameC[64];
+            snprintf(filenameC,sizeof(filenameC),"matrixC_%d.csv",number);
+            FILE*fpC = fopen(filenameC,"w");
+            if (fpC ==NULL) {
+                perror("cannot open file to write matrix C\n");
+            }
+            for (int m_index =0;m_index < m; m_index++) {
+                for (int n_index =0;n_index < n; n_index++) {
+                    fprintf(fpC,"%f",((float*)C)[m_index*ldc+n_index]);
+                    if (n_index< n-1) {
+                        fprintf(fpC,",");
+                    }
+            }
+                fprintf(fpC,"\n");
         }
         return func_ret;
 #elif defined(__ARM_NEON)
