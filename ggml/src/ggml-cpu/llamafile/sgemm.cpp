@@ -2670,8 +2670,10 @@ int number = g_sgemm_count ++;
                     if (n_index< n-1) {
                         fprintf(fpC,",");
                     }
-            }
+                    fprintf(fpC,"\n");
+                }
                 fprintf(fpC,"\n");
+            }
                 fclose(fpC);
                 printf("matrix C is written to %s\n",filenameC);
         }
