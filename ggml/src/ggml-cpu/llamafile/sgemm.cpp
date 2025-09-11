@@ -2628,11 +2628,15 @@ int number = g_sgemm_count ++;
             if (fpA ==NULL) {
                 perror("cannot open file to write matrix A\n");
             }
-            fprintf(fpA,"data\n");
-            for (int loop_index =0;loop_index < m*k; loop_index++) {
-                fprintf( fpA, "%f\n", ((float*)A)[loop_index]);
+            for (int m_index =0;m_index < m; m_index++) {
+                for (int k_index =0;k_index < k; k_index++) {
+                    fprintf(fpA,"%f",((float*)A)[m_index*lda+k_index]);
+                    if (k_index< k-1) {
+                        fprintf(fpA,",");
+                    }
+                }
+                fprintf(fpA,"\n");
             }
-            fprintf(fpA,"\n");
             fclose(fpA);
             printf("matrix A is written to %s\n",filenameA);
             printf("[%d] matrix B is %d x %d\n",params->ith ,k, n);
@@ -2642,11 +2646,15 @@ int number = g_sgemm_count ++;
             if (fpB ==NULL) {
                 perror("cannot open file to write matrix B\n");
             }
-            fprintf(fpB,"data\n");
-            for (int loop_index =0;loop_index < n*k; loop_index++) {
-                fprintf(fpB,"%f,", ((float*)B)[loop_index]);
+            for (int k_index =0;k_index < k; k_index++) {
+                for (int n_index =0;n_index < n; n_index++) {
+                    fprintf(fpB,"%f",((float*)B)[k_index*ldb+n_index]);
+                    if (n_index< n-1) {
+                        fprintf(fpB,",");
+                    }
+                }
+                fprintf(fpB,"\n");
             }
-            fprintf(fpB,"\n");
             fclose(fpB);
             printf("matrix B is written to %s\n",filenameB);
         }
