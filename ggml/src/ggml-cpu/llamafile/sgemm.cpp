@@ -2633,7 +2633,7 @@ int number = g_sgemm_count ++;
         }
         fprintf(fpA,"\n");
         fclose(fpA);
-        printf("matrix A is written to %s\n",filename);
+        printf("matrix A is written to %s\n",filenameA);
         printf("[%d] matrix B is %d x %d\n",params->ith ,k, n);
         char filenameB[64];
         snprintf(filenameB,sizeof(filenameB),"matrixB_%d.csr",number);
