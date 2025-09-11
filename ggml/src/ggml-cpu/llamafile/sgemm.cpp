@@ -2656,7 +2656,7 @@ int number = g_sgemm_count ++;
             (float *)C, ldc};
         bool func_ret;
         func_ret = tb.matmul(m, n);
-        if (func_ret) {
+        if (func_ret && params->ith ==0) {
             printf("[%d] Return true, I will print matrix C\n",params->ith);
             char filenameC[64];
             snprintf(filenameC,sizeof(filenameC),"matrixC_%d.csv",number);
@@ -2670,7 +2670,6 @@ int number = g_sgemm_count ++;
                     if (n_index< n-1) {
                         fprintf(fpC,",");
                     }
-                    fprintf(fpC,"\n");
                 }
                 fprintf(fpC,"\n");
             }
