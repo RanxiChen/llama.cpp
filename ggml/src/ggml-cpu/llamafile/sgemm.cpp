@@ -2658,6 +2658,7 @@ int number = g_sgemm_count ++;
         func_ret = tb.matmul(m, n);
         if (func_ret && params->ith ==0) {
             printf("[%d] Return true, I will print matrix C\n",params->ith);
+            printf("[%d] matrix C is %d x %d\n", params->ith,m, n);
             char filenameC[64];
             snprintf(filenameC,sizeof(filenameC),"matrixC_%d.csv",number);
             FILE*fpC = fopen(filenameC,"w");
