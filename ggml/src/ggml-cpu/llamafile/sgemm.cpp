@@ -2673,10 +2673,10 @@ int number = g_sgemm_count ++;
             if (fpC ==NULL) {
                 perror("cannot open file to write matrix C\n");
             }
-            for (int m_index =0;m_index < m; m_index++) {
-                for (int n_index =0;n_index < n; n_index++) {
-                    fprintf(fpC,"%f",((float*)C)[m_index*ldc+n_index]);
-                    if (n_index< n-1) {
+            for (int n_index =0;n_index < n; n_index++) {
+                for (int m_index =0;m_index < m; m_index++) {
+                    fprintf(fpC,"%f",((float*)C)[n_index*ldc+m_index]);
+                    if (m_index< m-1) {
                         fprintf(fpC,",");
                     }
                 }
