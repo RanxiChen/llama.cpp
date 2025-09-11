@@ -2610,12 +2610,12 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             (float *)C, ldc};
         return tb.matmul(m, n);
 #elif defined(__AVX__) || defined(__AVX2__)
-        printf("I will print matrix data\n");
-        printf("matrix A is %d x %d\n", m, k);
+        printf("[%d] I will print matrix data\n",params->ith);
+        printf("[%d] matrix A is %d x %d\n", params->ith,m, k);
         for (int loop_index =0;loop_index < m*k; loop_index++) {
             //printf("%f,", ((float*)A)[loop_index]);
         }
-        printf("matrix B is %d x %d\n", k, n);
+        printf("[%d] matrix B is %d x %d\n",params->ith ,k, n);
         for (int loop_index =0;loop_index < n*k; loop_index++) {
             //printf("%f,", ((float*)B)[loop_index]);
         }
