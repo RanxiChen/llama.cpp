@@ -47,6 +47,9 @@
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
+#include <bits/locale_classes.h>
+
+#include <ctime>
 #if defined(MY_ACCELERATE_FLAGS)
 extern "C" {
 #include "shl_ref.h"
@@ -2612,9 +2615,21 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
 #elif defined(__AVX__) || defined(__AVX2__)
         printf("[%d] I will print matrix data\n",params->ith);
         printf("[%d] matrix A is %d x %d\n", params->ith,m, k);
-        for (int loop_index =0;loop_index < m*k; loop_index++) {
-            //printf("%f,", ((float*)A)[loop_index]);
+        srand((unsigned)time(NULL));
+        int r = rand() ;
+        char file_name[64];
+        snprintf(filename,sizeof(filename),"matrixA_%d.csr",r);
+        FILE*fpA = fopen(file_name,"w");
+        if (fp ==NULL) {
+            perror("cannot open file to write matrix A\n");
         }
+        fprintf(fpA,"data\n");
+        for (int loop_index =0;loop_index < m*k; loop_index++) {
+            fprintf( fpA, "%f,", ((float*)A)[loop_index]);
+        }
+        fprintf(fpA,"\n");
+        fclose(fpA);
+        printf("matrix A is written to %s\n",file_name);
         printf("[%d] matrix B is %d x %d\n",params->ith ,k, n);
         for (int loop_index =0;loop_index < n*k; loop_index++) {
             //printf("%f,", ((float*)B)[loop_index]);
