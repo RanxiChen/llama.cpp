@@ -48,7 +48,7 @@
 #pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
 #include <bits/locale_classes.h>
-
+#include<atomic>
 #include <ctime>
 #if defined(MY_ACCELERATE_FLAGS)
 extern "C" {
@@ -2582,7 +2582,7 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
     if (n < 2)
         return false;
 #endif
-g_sgemm_count ++;
+int number = g_sgemm_count ++;
 
     if (Ctype != GGML_TYPE_F32)
         return false;
@@ -2616,7 +2616,7 @@ g_sgemm_count ++;
         printf("[%d] I will print matrix data\n",params->ith);
         printf("[%d] matrix A is %d x %d\n", params->ith,m, k);
         char filename[64];
-        snprintf(filename,sizeof(filename),"matrixA_%d.csr",g_sgemm_count);
+        snprintf(filename,sizeof(filename),"matrixA_%d.csr",number);
         FILE*fpA = fopen(filename,"w");
         if (fpA ==NULL) {
             perror("cannot open file to write matrix A\n");
