@@ -2623,7 +2623,7 @@ int number = g_sgemm_count ++;
             printf("[%d] n = %d\n",number,n);
             printf("[%d] matrix A is %d x %d\n", params->ith,m, k);
             char filenameA[64];
-            snprintf(filenameA,sizeof(filenameA),"data/matrixA_%d.csv",number);
+            snprintf(filenameA,sizeof(filenameA),"matrixA_%d.csv",number);
             FILE*fpA = fopen(filenameA,"w");
             if (fpA ==NULL) {
                 perror("cannot open file to write matrix A\n");
@@ -2641,7 +2641,7 @@ int number = g_sgemm_count ++;
             printf("matrix A is written to %s\n",filenameA);
             printf("[%d] matrix B is %d x %d\n",params->ith ,k, n);
             char filenameB[64];
-            snprintf(filenameB,sizeof(filenameB),"data/matrixB_%d.csv",number);
+            snprintf(filenameB,sizeof(filenameB),"matrixB_%d.csv",number);
             FILE*fpB = fopen(filenameB,"w");
             if (fpB ==NULL) {
                 perror("cannot open file to write matrix B\n");
@@ -2668,7 +2668,7 @@ int number = g_sgemm_count ++;
             printf("[%d] Return true, I will print matrix C\n",params->ith);
             printf("[%d] matrix C is %d x %d\n", params->ith,m, n);
             char filenameC[64];
-            snprintf(filenameC,sizeof(filenameC),"data/matrixC_%d.csv",number);
+            snprintf(filenameC,sizeof(filenameC),"matrixC_%d.csv",number);
             FILE*fpC = fopen(filenameC,"w");
             if (fpC ==NULL) {
                 perror("cannot open file to write matrix C\n");
