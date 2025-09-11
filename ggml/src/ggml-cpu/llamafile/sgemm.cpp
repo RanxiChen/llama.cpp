@@ -2613,11 +2613,17 @@ int number = g_sgemm_count ++;
             (float *)C, ldc};
         return tb.matmul(m, n);
 #elif defined(__AVX__) || defined(__AVX2__)
-        printf("[%d] I will print matrix data\n",params->ith);
+        printf("[%d ith (%d)] I will print matrix data\n",params->ith,number);
+        printf("[%d] lda = %d\n",number,lda);
+        printf("[%d] ldb = %d\n",number,ldb);
+        printf("[%d] ldc = %d\n",number,ldc);
+        printf("[%d] k = %d\n",number,k);
+        printf("[%d] m = %d\n",number,m);
+        printf("[%d] n = %d\n",number,n);
         printf("[%d] matrix A is %d x %d\n", params->ith,m, k);
-        char filename[64];
-        snprintf(filename,sizeof(filename),"matrixA_%d.csr",number);
-        FILE*fpA = fopen(filename,"w");
+        char filenameA[64];
+        snprintf(filenameA,sizeof(filenameA),"matrixA_%d.csr",number);
+        FILE*fpA = fopen(filenameA,"w");
         if (fpA ==NULL) {
             perror("cannot open file to write matrix A\n");
         }
@@ -2629,14 +2635,30 @@ int number = g_sgemm_count ++;
         fclose(fpA);
         printf("matrix A is written to %s\n",filename);
         printf("[%d] matrix B is %d x %d\n",params->ith ,k, n);
-        for (int loop_index =0;loop_index < n*k; loop_index++) {
-            //printf("%f,", ((float*)B)[loop_index]);
+        char filenameB[64];
+        snprintf(filenameB,sizeof(filenameB),"matrixB_%d.csr",number);
+        FILE*fpB = fopen(filenameB,"w");
+        if (fpB ==NULL) {
+            perror("cannot open file to write matrix B\n");
         }
+        fprintf(fpB,"data\n");
+        for (int loop_index =0;loop_index < n*k; loop_index++) {
+            fprintf(fpB,"%f,", ((float*)B)[loop_index]);
+        }
+        fprintf(fpB,"\n");
+        fclose(fpB);
+        printf("matrix B is written to %s\n",filenameB);
         tinyBLAS<8, __m256, __m256, float, float, float> tb{ params,
             k, (const float *)A, lda,
             (const float *)B, ldb,
             (float *)C, ldc};
-        return tb.matmul(m, n);
+        bool func_ret;
+        func_ret = tb.matmul(m, n);
+        if (func_ret) {
+            printf("[%d] Return true, I will print matrix C\n",params->ith);
+
+        }
+        return func_ret;
 #elif defined(__ARM_NEON)
         if (n < 4)
             return false;
