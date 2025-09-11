@@ -2617,10 +2617,10 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         printf("[%d] matrix A is %d x %d\n", params->ith,m, k);
         srand((unsigned)time(NULL));
         int r = rand() ;
-        char file_name[64];
+        char filename[64];
         snprintf(filename,sizeof(filename),"matrixA_%d.csr",r);
         FILE*fpA = fopen(file_name,"w");
-        if (fp ==NULL) {
+        if (fpA ==NULL) {
             perror("cannot open file to write matrix A\n");
         }
         fprintf(fpA,"data\n");
