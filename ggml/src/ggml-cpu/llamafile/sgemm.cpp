@@ -2601,18 +2601,18 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         printf("***************************************************************\n");
 #endif
 #if defined(__AVX512F__)
-#if defined(EXPOSE_DATA_X64)
+
         printf("Have AVX512F\n");
-#endif
+
         tinyBLAS<16, __m512, __m512, float, float, float> tb{ params,
             k, (const float *)A, lda,
             (const float *)B, ldb,
             (float *)C, ldc};
         return tb.matmul(m, n);
 #elif defined(__AVX__) || defined(__AVX2__)
-#if defined(EXPOSE_DATA_X64)
+
         printf("Have AVX or AVX2\n");
-#endif
+
         tinyBLAS<8, __m256, __m256, float, float, float> tb{ params,
             k, (const float *)A, lda,
             (const float *)B, ldb,
@@ -2627,9 +2627,9 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             (float *)C, ldc};
         return tb.matmul(m, n);
 #elif defined(__VXE__) || defined(__VXE2__)
-#if defined(EXPOSE_DATA_X64)
+
         printf("Have VXE or VXE2\n");
-#endif
+
         if (n < 4)
             return false;
         tinyBLAS<4, float32x4_t, float32x4_t, float, float, float> tb{ params,
@@ -2638,9 +2638,9 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             (float *)C, ldc};
         return tb.matmul(m, n);
 #elif defined(__MMA__)
-#if defined(EXPOSE_DATA_X64)
+
         printf("Have MMA\n");
-#endif
+
         if (k % 8)
             return false;
         tinyBLAS_PPC tb{
