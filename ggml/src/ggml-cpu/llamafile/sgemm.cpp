@@ -2569,7 +2569,7 @@ std::atomic<int> g_sgemm_count{0};
  *In this function, if A,B,C both are float32, A will store its data as mxk matrix,
  *with row major order, every lda elements is a row, total m rows.
  *B will store its data as nxk matrix, with row major order, every ldb elements is a row, total n rows.
- *C will be diffrent, it's actully computed as C = [ (A*B') ]'.
+ *C will be diffrent,it will be n x m, it's actully computed as C = [ (A*B') ]'.
  **/
 bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64_t n, int64_t k,
                      const void *A, int64_t lda, const void *B, int64_t ldb, void *C,
