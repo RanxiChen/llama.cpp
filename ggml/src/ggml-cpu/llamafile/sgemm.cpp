@@ -2629,7 +2629,7 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         }
         fprintf(fpA,"\n");
         fclose(fpA);
-        printf("matrix A is written to %s\n",file_name);
+        printf("matrix A is written to %s\n",filename);
         printf("[%d] matrix B is %d x %d\n",params->ith ,k, n);
         for (int loop_index =0;loop_index < n*k; loop_index++) {
             //printf("%f,", ((float*)B)[loop_index]);
