@@ -134,6 +134,7 @@ option(GGML_XTHEADVECTOR     "ggml: enable xtheadvector"     OFF)
 option(GGML_VXE              "ggml: enable vxe"              ON)
 option(GGML_NNPA             "ggml: enable nnpa"             OFF)  # temp disabled by default, see: https://github.com/ggml-org/llama.cpp/issues/14877
 option(USE_SHL               "csi-nn:use shl lib"               OFF)
+option(EXPOSE_MUL_MAT_DATA  "expose tensor for debug" OFF)
 option(GGML_CPU_ALL_VARIANTS "ggml: build all variants of the CPU backend (requires GGML_BACKEND_DL)" OFF)
 set(GGML_CPU_ARM_ARCH        "" CACHE STRING "ggml: CPU architecture for ARM")
 set(GGML_CPU_POWERPC_CPUTYPE "" CACHE STRING "ggml: CPU type for PowerPC")
