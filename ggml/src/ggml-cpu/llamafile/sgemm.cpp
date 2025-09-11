@@ -2611,8 +2611,6 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         return tb.matmul(m, n);
 #elif defined(__AVX__) || defined(__AVX2__)
 
-        printf("Have AVX or AVX2\n");
-
         tinyBLAS<8, __m256, __m256, float, float, float> tb{ params,
             k, (const float *)A, lda,
             (const float *)B, ldb,
