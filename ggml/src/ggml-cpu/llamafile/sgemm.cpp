@@ -2647,7 +2647,7 @@ int number = g_sgemm_count ++;
                 perror("cannot open file to write matrix B\n");
             }
             for (int n_index =0;n_index < n; n_index++) {
-                for (int k_index =0;k_index < n; k_index++) {
+                for (int k_index =0;k_index < k; k_index++) {
                      fprintf(fpB,"%f",((float*)B)[n_index*ldb+k_index]);
                     if (k_index< k-1) {
                         fprintf(fpB,",");
