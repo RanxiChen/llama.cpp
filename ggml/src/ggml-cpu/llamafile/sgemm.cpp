@@ -2613,11 +2613,11 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         printf("I will print matrix data\n");
         printf("matrix A is %d x %d\n", m, k);
         for (int loop_index =0;loop_index < m*k; loop_index++) {
-            printf("%f,", ((float*)A)[loop_index]);
+            //printf("%f,", ((float*)A)[loop_index]);
         }
         printf("matrix B is %d x %d\n", k, n);
         for (int loop_index =0;loop_index < n*k; loop_index++) {
-            printf("%f,", ((float*)B)[loop_index]);
+            //printf("%f,", ((float*)B)[loop_index]);
         }
         tinyBLAS<8, __m256, __m256, float, float, float> tb{ params,
             k, (const float *)A, lda,
