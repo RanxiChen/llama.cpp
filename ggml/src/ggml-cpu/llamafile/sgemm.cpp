@@ -2534,7 +2534,7 @@ class tinyBLAS_PPC {
 };
 #endif
 } // namespace
-
+std::atomic<int> g_sgemm_count{0};
 /**
  * Performs optimized matrix multiplication on CPU.
  *
@@ -2582,7 +2582,7 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
     if (n < 2)
         return false;
 #endif
-
+g_sgemm_count ++;
 
     if (Ctype != GGML_TYPE_F32)
         return false;
@@ -2615,10 +2615,8 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
 #elif defined(__AVX__) || defined(__AVX2__)
         printf("[%d] I will print matrix data\n",params->ith);
         printf("[%d] matrix A is %d x %d\n", params->ith,m, k);
-        srand((unsigned)time(NULL));
-        int r = rand() ;
         char filename[64];
-        snprintf(filename,sizeof(filename),"matrixA_%d.csr",r);
+        snprintf(filename,sizeof(filename),"matrixA_%d.csr",g_sgemm_count);
         FILE*fpA = fopen(filename,"w");
         if (fpA ==NULL) {
             perror("cannot open file to write matrix A\n");
