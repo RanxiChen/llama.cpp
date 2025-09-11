@@ -452,7 +452,9 @@ class tinyBLAS {
         }
 
         ggml_barrier(params->threadpool);
-
+if (params->ith >= 1) {
+    printf("Multi thresds run\n");
+}
         int64_t job = params->ith;
         while (job < nb_job) {
             const int64_t ii = (job % ytiles) * RM * BM;
