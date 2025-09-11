@@ -2672,6 +2672,8 @@ int number = g_sgemm_count ++;
                     }
             }
                 fprintf(fpC,"\n");
+                fclose(fpC);
+                printf("matrix C is written to %s\n",filenameC);
         }
         return func_ret;
 #elif defined(__ARM_NEON)
