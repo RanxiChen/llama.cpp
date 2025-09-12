@@ -52,8 +52,9 @@
 #include <ctime>
 #if defined(MY_ACCELERATE_FLAGS)
 extern "C" {
-#include "shl_ref.h"
-#include "shl_thead_rvv.h"
+#include "ref.h"
+//#include "shl_thead_rvv.h"
+#include "rvv.h"
 }
 #endif
 #include "sgemm.h"
