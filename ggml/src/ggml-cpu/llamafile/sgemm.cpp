@@ -2535,9 +2535,9 @@ class tinyBLAS_PPC {
 };
 #endif
 } // namespace
-#if defined(__AVX__) || defined(__AVX2__) || defined(MY_ACCELERATE_FLAGS)
+/*#if defined(__AVX__) || defined(__AVX2__) || defined(MY_ACCELERATE_FLAGS)
 std::atomic<int> g_sgemm_count{0};
-#endif
+#endif*/
 /**
  * Performs optimized matrix multiplication on CPU.
  *
@@ -2724,14 +2724,14 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         return true;
 #elif defined(MY_ACCELERATE_FLAGS)
         //shl_rvv_gemm_8x8_fp32((float*)C,(float*)A,(float*)B,NULL,m,n,k,ldc);
-        int number = g_sgemm_count ++;
+        /*int number = g_sgemm_count ++;
         if (m != ldc) {
             printf("m=%d, ldc=%d, they should be equal\n", (int)m, (int)ldc);
         }
         if (params->nth != 1) {
             printf("nth=%d, we only support nth=1 for Accelerate framework\n", params->nth);
-        }
-        if (params->ith ==0 && true) {
+        }*/
+        /*if (params->ith ==0 && true) {
             printf("[%d ith (%d)] I will print matrix data\n",params->ith,number);
             printf("[%d] lda = %d\n",number,lda);
             printf("[%d] ldb = %d\n",number,ldb);
@@ -2775,7 +2775,7 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             }
             fclose(fpB);
             printf("matrix B is written to %s\n",filenameB);
-        }
+        }*/
         //process
         //transpose A
         float*At = (float*)shl_mem_alloc(k*m*sizeof(float));
@@ -2790,7 +2790,7 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         float*opB = (float*)shl_mem_alloc(k*m*sizeof(float));
         shl_rvv_reorder_b_block_pack2nxk_fp32((float*)At,opB,k,m,64,64);
         shl_rvv_gemm_block_12xpack2n_fp32((float*)C,opA,opB,NULL,n,k,m,32,64,64);
-        if ( params->ith ==0 && true ) {
+       /* if ( params->ith ==0 && true ) {
             printf("[%d] Return true, I will print matrix C\n",params->ith);
             printf("[%d] matrix C is %d x %d\n", params->ith,m, n);
             char filenameC[64];
@@ -2810,7 +2810,7 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             }
             fclose(fpC);
             printf("matrix C is written to %s\n",filenameC);
-        }
+        }*/
         shl_mem_free(At);
         shl_mem_free(opA);
         shl_mem_free(opB);
