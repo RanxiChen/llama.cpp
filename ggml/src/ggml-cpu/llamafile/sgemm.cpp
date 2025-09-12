@@ -2534,7 +2534,9 @@ class tinyBLAS_PPC {
 };
 #endif
 } // namespace
+#if defined(__AVX__) || defined(__AVX2__)
 std::atomic<int> g_sgemm_count{0};
+#endif
 /**
  * Performs optimized matrix multiplication on CPU.
  *
@@ -2588,7 +2590,7 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
     if (n < 2)
         return false;
 #endif
-int number = g_sgemm_count ++;
+
 
 
     if (Ctype != GGML_TYPE_F32)
@@ -2600,15 +2602,22 @@ int number = g_sgemm_count ++;
         if (Btype != GGML_TYPE_F32)
             return false;
 #if defined(MY_ACCELERATE_FLAGS)
-        printf("***************************************************************\n");
-        printf("We will process one sgemm with Accelerate framework\n");
-        printf("nth=%d ith=%d\n", params->nth, params->ith);
-        printf("A has type %s\n", ggml_type_name(static_cast<enum ggml_type>(Atype)));
-        printf("B has type %s\n", ggml_type_name(static_cast<enum ggml_type>(Btype)));
-        printf("C has type %s\n", ggml_type_name(static_cast<enum ggml_type>(Ctype)));
-        printf("m = %lld, n = %lld, k = %lld\n", m, n, k);
-        printf("lda = %lld, ldb = %lld, ldc = %lld\n", lda, ldb, ldc);
-        printf("***************************************************************\n");
+        if (true) {
+            /*
+            printf("***************************************************************\n");
+            printf("We will process one sgemm with Accelerate framework\n");
+            printf("nth=%d ith=%d\n", params->nth, params->ith);
+            printf("A has type %s\n", ggml_type_name(static_cast<enum ggml_type>(Atype)));
+            printf("B has type %s\n", ggml_type_name(static_cast<enum ggml_type>(Btype)));
+            printf("C has type %s\n", ggml_type_name(static_cast<enum ggml_type>(Ctype)));
+            printf("m = %lld, n = %lld, k = %lld\n", m, n, k);
+            printf("lda = %lld, ldb = %lld, ldc = %lld\n", lda, ldb, ldc);
+            printf("***************************************************************\n");
+            */
+            if (ldc != m) {
+
+            printf("m=%d, ldc=%d, they should be equal\n", (int)m, (int)ldc);}
+        }
 #endif
 #if defined(__AVX512F__)
 
@@ -2620,6 +2629,7 @@ int number = g_sgemm_count ++;
             (float *)C, ldc};
         return tb.matmul(m, n);
 #elif defined(__AVX__) || defined(__AVX2__)
+        int number = g_sgemm_count ++;
         if (m != ldc) {
             printf("m=%d, ldc=%d, they should be equal\n", (int)m, (int)ldc);
         }
