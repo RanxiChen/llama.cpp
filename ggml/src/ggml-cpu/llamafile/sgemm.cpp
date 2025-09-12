@@ -2535,7 +2535,7 @@ class tinyBLAS_PPC {
 };
 #endif
 } // namespace
-#if defined(__AVX__) || defined(__AVX2__)
+#if defined(__AVX__) || defined(__AVX2__) || defined(MY_ACCELERATE_FLAGS)
 std::atomic<int> g_sgemm_count{0};
 #endif
 /**
@@ -2602,27 +2602,7 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
     case GGML_TYPE_F32: {
         if (Btype != GGML_TYPE_F32)
             return false;
-#if defined(MY_ACCELERATE_FLAGS)
-        if (true) {
-            /*
-            printf("***************************************************************\n");
-            printf("We will process one sgemm with Accelerate framework\n");
-            printf("nth=%d ith=%d\n", params->nth, params->ith);
-            printf("A has type %s\n", ggml_type_name(static_cast<enum ggml_type>(Atype)));
-            printf("B has type %s\n", ggml_type_name(static_cast<enum ggml_type>(Btype)));
-            printf("C has type %s\n", ggml_type_name(static_cast<enum ggml_type>(Ctype)));
-            printf("m = %lld, n = %lld, k = %lld\n", m, n, k);
-            printf("lda = %lld, ldb = %lld, ldc = %lld\n", lda, ldb, ldc);
-            printf("***************************************************************\n");
-            */
-            if (ldc != m) {
 
-            printf("m=%d, ldc=%d, they should be equal\n", (int)m, (int)ldc);}
-            if (params->nth != 1) {
-                printf("nth=%d, we only support nth=1 for Accelerate framework\n", params->nth);
-            }
-        }
-#endif
 #if defined(__AVX512F__)
 
         printf("Have AVX512F\n");
@@ -2744,7 +2724,97 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         return true;
 #elif defined(MY_ACCELERATE_FLAGS)
         //shl_rvv_gemm_8x8_fp32((float*)C,(float*)A,(float*)B,NULL,m,n,k,ldc);
-        return false;
+        int number = g_sgemm_count ++;
+        if (m != ldc) {
+            printf("m=%d, ldc=%d, they should be equal\n", (int)m, (int)ldc);
+        }
+        if (params->nth != 1) {
+            printf("nth=%d, we only support nth=1 for Accelerate framework\n", params->nth);
+        }
+        if (params->ith ==0 && true) {
+            printf("[%d ith (%d)] I will print matrix data\n",params->ith,number);
+            printf("[%d] lda = %d\n",number,lda);
+            printf("[%d] ldb = %d\n",number,ldb);
+            printf("[%d] ldc = %d\n",number,ldc);
+            printf("[%d] k = %d\n",number,k);
+            printf("[%d] m = %d\n",number,m);
+            printf("[%d] n = %d\n",number,n);
+            printf("[%d] matrix A is %d x %d\n", params->ith,m, k);
+            char filenameA[64];
+            snprintf(filenameA,sizeof(filenameA),"matrixA_%d.csv",number);
+            FILE*fpA = fopen(filenameA,"w");
+            if (fpA ==NULL) {
+                perror("cannot open file to write matrix A\n");
+            }
+            for (int m_index =0;m_index < m; m_index++) {
+                for (int k_index =0;k_index < k; k_index++) {
+                    fprintf(fpA,"%f",((float*)A)[m_index*lda+k_index]);
+                    if (k_index< k-1) {
+                        fprintf(fpA,",");
+                    }
+                }
+                fprintf(fpA,"\n");
+            }
+            fclose(fpA);
+            printf("matrix A is written to %s\n",filenameA);
+            printf("[%d] matrix B is %d x %d\n",params->ith ,k, n);
+            char filenameB[64];
+            snprintf(filenameB,sizeof(filenameB),"matrixB_%d.csv",number);
+            FILE*fpB = fopen(filenameB,"w");
+            if (fpB ==NULL) {
+                perror("cannot open file to write matrix B\n");
+            }
+            for (int n_index =0;n_index < n; n_index++) {
+                for (int k_index =0;k_index < k; k_index++) {
+                     fprintf(fpB,"%f",((float*)B)[n_index*ldb+k_index]);
+                    if (k_index< k-1) {
+                        fprintf(fpB,",");
+                    }
+                }
+                fprintf(fpB,"\n");
+            }
+            fclose(fpB);
+            printf("matrix B is written to %s\n",filenameB);
+        }
+        //process
+        //transpose A
+        float*At = (float*)shl_mem_alloc(k*m*sizeof(float));
+        //At[i][j] = A[j][i]
+        for (int m_index =0;m_index < m; m_index++) {
+            for (int k_index =0;k_index < k; k_index++) {
+                 /*dst*/((float*)At)[k_index*m+m_index] = /*orgin*/((float*)A)[m_index*lda+k_index];
+            }
+        }
+        float*opA = (float*)shl_mem_alloc(k*n*sizeof(float));
+        shl_rvv_reorder_a_block_12xk_fp32((float*)B,(float*)opA,n,k,32,64);
+        float*opB = (float*)shl_mem_alloc(k*m*sizeof(float));
+        shl_rvv_reorder_b_block_pack2nxk_fp32((float*)At,opB,k,m,64,64);
+        shl_rvv_gemm_block_12xpack2n_fp32((float*)C,opA,opB,NULL,n,k,m,32,64,64);
+        if ( params->ith ==0 && true ) {
+            printf("[%d] Return true, I will print matrix C\n",params->ith);
+            printf("[%d] matrix C is %d x %d\n", params->ith,m, n);
+            char filenameC[64];
+            snprintf(filenameC,sizeof(filenameC),"matrixC_%d.csv",number);
+            FILE*fpC = fopen(filenameC,"w");
+            if (fpC ==NULL) {
+                perror("cannot open file to write matrix C\n");
+            }
+            for (int n_index =0;n_index < n; n_index++) {
+                for (int m_index =0;m_index < m; m_index++) {
+                    fprintf(fpC,"%f",((float*)C)[n_index*ldc+m_index]);
+                    if (m_index< m-1) {
+                        fprintf(fpC,",");
+                    }
+                }
+                fprintf(fpC,"\n");
+            }
+            fclose(fpC);
+            printf("matrix C is written to %s\n",filenameC);
+        }
+        shl_mem_free(At);
+        shl_mem_free(opA);
+        shl_mem_free(opB);
+        return true;
 #else
         return false;
 #endif
