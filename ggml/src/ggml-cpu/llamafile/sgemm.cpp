@@ -2617,6 +2617,9 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             if (ldc != m) {
 
             printf("m=%d, ldc=%d, they should be equal\n", (int)m, (int)ldc);}
+            if (params->nth != 1) {
+                printf("nth=%d, we only support nth=1 for Accelerate framework\n", params->nth);
+            }
         }
 #endif
 #if defined(__AVX512F__)
