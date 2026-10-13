@@ -276,8 +276,9 @@ static int flow_zve_selftest_one(enum ggml_type type, int64_t k, int64_t n) {
             ok = 0;
         }
     }
-    GGML_LOG_INFO("flow-zve: self-test %s k=%lld n=%lld: %s (max err/mag %.3g)\n", ggml_type_name(type), (long long) k,
-                  (long long) n, ok ? "PASS" : "FAIL", (double) max_err);
+    printf("flow-zve: self-test %s k=%lld n=%lld: %s (max err/mag %.3g)\n", ggml_type_name(type), (long long) k,
+           (long long) n, ok ? "PASS" : "FAIL", (double) max_err);
+    fflush(stdout);
 
     free(wf); free(wq); free(x); free(xq); free(packed); free(act); free(y); free(ref);
     return ok;
