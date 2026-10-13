@@ -3098,6 +3098,77 @@ static int ggml_cpu_try_fuse_ops(
     return 0;
 }
 
+#ifdef GGML_FLOW_ZVE32F
+// FLOW_PROF=1: wall time per (op, src0 type, repacked) on thread 0, printed
+// at exit. Exact for -t 1; with more threads it includes barrier waits.
+struct flow_prof_entry {
+    const char * op;
+    int          type;
+    int          extra;
+    uint64_t     ns;
+    uint64_t     count;
+};
+
+#define FLOW_PROF_MAX 128
+static struct flow_prof_entry flow_prof_table[FLOW_PROF_MAX];
+static int                    flow_prof_used;
+static uint64_t               flow_prof_total;
+
+static uint64_t flow_prof_now(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t) ts.tv_sec * 1000000000ull + (uint64_t) ts.tv_nsec;
+}
+
+static int flow_prof_cmp(const void * a, const void * b) {
+    const uint64_t x = ((const struct flow_prof_entry *) a)->ns;
+    const uint64_t y = ((const struct flow_prof_entry *) b)->ns;
+    return x < y ? 1 : x > y ? -1 : 0;
+}
+
+static void flow_prof_report(void) {
+    qsort(flow_prof_table, flow_prof_used, sizeof(flow_prof_table[0]), flow_prof_cmp);
+    fprintf(stderr, "flow-prof: total %.3f ms in graph nodes\n", flow_prof_total / 1e6);
+    fprintf(stderr, "flow-prof: %-16s %-6s %-5s %12s %9s %6s\n", "op", "src0", "flow", "ms", "count", "%");
+    for (int i = 0; i < flow_prof_used; ++i) {
+        const struct flow_prof_entry * e = &flow_prof_table[i];
+        fprintf(stderr, "flow-prof: %-16s %-6s %-5s %12.3f %9llu %6.2f\n", e->op,
+                e->type < 0 ? "-" : ggml_type_name((enum ggml_type) e->type), e->extra ? "yes" : "no", e->ns / 1e6,
+                (unsigned long long) e->count, flow_prof_total ? 100.0 * e->ns / flow_prof_total : 0.0);
+    }
+}
+
+static int flow_prof_enabled(void) {
+    static int state = -1;
+    if (state < 0) {
+        const char * env = getenv("FLOW_PROF");
+        state = env && strcmp(env, "0") != 0;
+        if (state) {
+            atexit(flow_prof_report);
+        }
+    }
+    return state;
+}
+
+static void flow_prof_add(const struct ggml_tensor * node, uint64_t ns) {
+    const char * op    = ggml_op_desc(node);
+    const int    type  = node->src[0] ? (int) node->src[0]->type : -1;
+    const int    extra = node->src[0] && node->src[0]->extra != NULL;
+    flow_prof_total += ns;
+    for (int i = 0; i < flow_prof_used; ++i) {
+        struct flow_prof_entry * e = &flow_prof_table[i];
+        if (e->op == op && e->type == type && e->extra == extra) {
+            e->ns += ns;
+            e->count++;
+            return;
+        }
+    }
+    if (flow_prof_used < FLOW_PROF_MAX) {
+        flow_prof_table[flow_prof_used++] = (struct flow_prof_entry) { op, type, extra, ns, 1 };
+    }
+}
+#endif
+
 static thread_ret_t ggml_graph_compute_thread(void * data) {
     struct ggml_compute_state * state = (struct ggml_compute_state *) data;
     struct ggml_threadpool    * tp    = state->threadpool;
@@ -3140,12 +3211,22 @@ static thread_ret_t ggml_graph_compute_thread(void * data) {
 
         // TODO: move fused-op detection into ggml_graph_plan so fusion decisions are made once at planning time
         // Try fused ops, fall back to normal compute
+#ifdef GGML_FLOW_ZVE32F
+        const int      flow_prof = state->ith == 0 && flow_prof_enabled();
+        const uint64_t flow_t0   = flow_prof ? flow_prof_now() : 0;
+#endif
         const int n_fused = ggml_cpu_try_fuse_ops(cgraph, node_n, &params, cplan);
         if (n_fused > 0) {
             node_n += n_fused;
         } else {
             ggml_compute_forward(&params, node);
         }
+#ifdef GGML_FLOW_ZVE32F
+        // Fused groups are charged to their first node.
+        if (flow_prof) {
+            flow_prof_add(node, flow_prof_now() - flow_t0);
+        }
+#endif
 
         if (state->ith == 0 && cplan->abort_callback &&
                 cplan->abort_callback(cplan->abort_callback_data)) {

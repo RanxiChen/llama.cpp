@@ -178,6 +178,7 @@ option(GGML_RV_ZICBOP        "ggml: enable riscv zicbop"      ON)
 option(GGML_RV_ZIHINTPAUSE   "ggml: enable riscv zihintpause" ON)
 option(GGML_RV_ZVFBFWMA      "ggml: enable riscv zvfbfwma"    OFF)
 option(GGML_XTHEADVECTOR     "ggml: enable xtheadvector"      OFF)
+option(GGML_RV_FLOW_ZVE32F  "ggml: Flow zve32f Q4_0/Q8_0 repack kernels (VLEN >= 512)" OFF)
 option(GGML_VXE              "ggml: enable vxe"               ${GGML_NATIVE})
 
 option(GGML_CPU_ALL_VARIANTS "ggml: build all variants of the CPU backend (requires GGML_BACKEND_DL)" OFF)

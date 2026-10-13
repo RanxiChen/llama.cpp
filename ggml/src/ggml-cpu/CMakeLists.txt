@@ -505,6 +505,19 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
                 list(APPEND GGML_CPU_SOURCES ggml-cpu/spacemit/ime2_kernels.cpp)
             endif()
         endif()
+        if (GGML_RV_FLOW_ZVE32F)
+            # Kernels are hand-written assembly (.option arch, +zve32f), so the
+            # rest of ggml stays rv64gc and is never auto-vectorized.
+            if (NOT GGML_CPU_REPACK)
+                message(FATAL_ERROR "GGML_RV_FLOW_ZVE32F requires GGML_CPU_REPACK")
+            endif()
+            list(APPEND GGML_CPU_SOURCES
+                ggml-cpu/arch/riscv/flow-zve.c
+                ggml-cpu/arch/riscv/flow-zve.h
+                ggml-cpu/arch/riscv/flow-zve-kernels.S
+                )
+            target_compile_definitions(${GGML_CPU_NAME} PRIVATE GGML_FLOW_ZVE32F)
+        endif()
         if(NOT GGML_CPU_ALL_VARIANTS)
             set(MARCH_STR "rv64gc")
             if (GGML_RVV)

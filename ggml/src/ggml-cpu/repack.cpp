@@ -18,6 +18,10 @@
 
 #include "repack.h"
 
+#ifdef GGML_FLOW_ZVE32F
+#include "arch/riscv/flow-zve.h"
+#endif
+
 #if defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Woverlength-strings"
 #endif
@@ -4920,6 +4924,81 @@ template <typename BLOC_TYPE, int64_t INTER_SIZE, int64_t NB_COLS, ggml_type PAR
     }
 };
 
+#ifdef GGML_FLOW_ZVE32F
+// Flow single-zve32f: 128-row groups with f32 scales (larger than ggml_nbytes,
+// see get_alloc_size below). One thread-shared activation quantization per
+// src1 row, then every thread runs the GEMV kernel on its own row groups.
+template <ggml_type TYPE> class flow_zve_traits : public tensor_traits_base {
+    bool work_size(int /* n_threads */, const struct ggml_tensor * op, size_t & size) override {
+        if (op->op != GGML_OP_MUL_MAT) {
+            return false;
+        }
+        size = flow_zve_act_row_bytes(op->src[1]->ne[0]) * ggml_nrows(op->src[1]);
+        return true;
+    }
+
+    bool compute_forward(struct ggml_compute_params * params, struct ggml_tensor * op) override {
+        if (op->op != GGML_OP_MUL_MAT) {
+            return false;
+        }
+        forward_mul_mat(params, op);
+        return true;
+    }
+
+    void forward_mul_mat(ggml_compute_params * params, ggml_tensor * op) {
+        const ggml_tensor * src0 = op->src[0];
+        const ggml_tensor * src1 = op->src[1];
+        ggml_tensor *       dst  = op;
+
+        GGML_TENSOR_BINARY_OP_LOCALS
+
+        GGML_ASSERT(src0->type == TYPE && src1->type == GGML_TYPE_F32);
+        GGML_ASSERT(ne00 == ne10 && ne0 == ne01 && ne02 == 1 && ne03 == 1);
+        GGML_ASSERT(ne01 % FLOW_ZVE_ROWS == 0);
+        GGML_ASSERT(nb10 == sizeof(float) && nb0 == sizeof(float));
+
+        const int     ith      = params->ith;
+        const int     nth      = params->nth;
+        const size_t  act_size = flow_zve_act_row_bytes(ne10);
+        const int64_t nrows1   = ne11 * ne12 * ne13;
+        char *        wdata    = static_cast<char *>(params->wdata);
+
+        GGML_ASSERT(params->wsize >= act_size * nrows1);
+
+        for (int64_t r = ith; r < nrows1; r += nth) {
+            const int64_t i11 = r % ne11;
+            const int64_t i12 = (r / ne11) % ne12;
+            const int64_t i13 = r / (ne11 * ne12);
+            flow_zve_quantize_act((const float *) ((const char *) src1->data + i11 * nb11 + i12 * nb12 + i13 * nb13),
+                                  wdata + r * act_size, ne10);
+        }
+
+        ggml_barrier(params->threadpool);
+
+        const int64_t ngroups = ne01 / FLOW_ZVE_ROWS;
+        const int64_t g0      = ngroups * ith / nth;
+        const int64_t g1      = ngroups * (ith + 1) / nth;
+        if (g0 >= g1) {
+            return;
+        }
+        const char * w = (const char *) src0->data + g0 * (ne00 / QK8_0) * flow_zve_group_block_bytes(TYPE);
+
+        for (int64_t r = 0; r < nrows1; ++r) {
+            const int64_t i11 = r % ne11;
+            const int64_t i12 = (r / ne11) % ne12;
+            const int64_t i13 = r / (ne11 * ne12);
+            float * y = (float *) ((char *) dst->data + i11 * nb1 + i12 * nb2 + i13 * nb3) + g0 * FLOW_ZVE_ROWS;
+            flow_zve_gemv(TYPE, w, wdata + r * act_size, y, ne00, g1 - g0);
+        }
+    }
+
+    int repack(struct ggml_tensor * t, const void * data, size_t data_size) override {
+        GGML_LOG_DEBUG("%s: repack tensor %s with flow_zve %s_%d\n", __func__, t->name, ggml_type_name(t->type), FLOW_ZVE_ROWS);
+        return flow_zve_repack(t, data, data_size);
+    }
+};
+#endif
+
 }  // namespace ggml::cpu::repack
 
 static const ggml::cpu::tensor_traits * ggml_repack_get_optimal_repack_type(const struct ggml_tensor * cur) {
@@ -4969,6 +5048,18 @@ static const ggml::cpu::tensor_traits * ggml_repack_get_optimal_repack_type(cons
     static const ggml::cpu::repack::tensor_traits<block_iq4_nl, 1, 16, GGML_TYPE_Q8_0> iq4_nl_16x1_q8_0;
     static const ggml::cpu::repack::tensor_traits<block_q8_0, 1, 16, GGML_TYPE_Q8_0> q8_0_16x1_q8_0;
     static const ggml::cpu::repack::tensor_traits<block_q2_K, 1, 16, GGML_TYPE_Q8_K> q2_K_16x1_q8_K;
+#endif
+
+#ifdef GGML_FLOW_ZVE32F
+    static const ggml::cpu::repack::flow_zve_traits<GGML_TYPE_Q4_0> flow_zve_q4_0;
+    static const ggml::cpu::repack::flow_zve_traits<GGML_TYPE_Q8_0> flow_zve_q8_0;
+
+    if (flow_zve_supports(cur)) {
+        if (cur->type == GGML_TYPE_Q4_0) {
+            return &flow_zve_q4_0;
+        }
+        return &flow_zve_q8_0;
+    }
 #endif
 
     if (cur->type == GGML_TYPE_Q4_0) {
@@ -5180,6 +5271,17 @@ static ggml_backend_buffer_t ggml_backend_cpu_repack_buffer_type_alloc_buffer(gg
     return buffer;
 }
 
+#ifdef GGML_FLOW_ZVE32F
+static size_t ggml_backend_cpu_repack_buffer_type_get_alloc_size(ggml_backend_buffer_type_t buft, const struct ggml_tensor * tensor) {
+    if (flow_zve_supports(tensor)) {
+        return flow_zve_repacked_bytes(tensor);
+    }
+    return ggml_nbytes(tensor);
+
+    GGML_UNUSED(buft);
+}
+#endif
+
 static size_t ggml_backend_cpu_repack_buffer_type_get_alignment(ggml_backend_buffer_type_t buft) {
     return TENSOR_ALIGNMENT;
 
@@ -5243,7 +5345,11 @@ ggml_backend_buffer_type_t ggml_backend_cpu_repack_buffer_type(void) {
                            /* .alloc_buffer_n       = */ nullptr,
                            /* .get_alignment        = */ ggml_backend_cpu_repack_buffer_type_get_alignment,
                            /* .get_max_size         = */ nullptr,  // defaults to SIZE_MAX
+#ifdef GGML_FLOW_ZVE32F
+                           /* .get_alloc_size       = */ ggml_backend_cpu_repack_buffer_type_get_alloc_size,
+#else
                            /* .get_alloc_size       = */ nullptr,  // defaults to ggml_nbytes
+#endif
                            /* .get_alloc_size_n     = */ NULL,
                            /* .is_host              = */ nullptr,
                            },
